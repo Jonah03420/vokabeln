@@ -125,6 +125,18 @@ export function quizCards(deck, progress, filter = 'alle') {
     .filter((card) => filter === 'alle' || cardStatus(progress[card.id]) === filter);
 }
 
+// Karten mehrerer Stapel für eine gemeinsame Abfrage. Jede Karte behält die ID ihres Stapels.
+export function combinedCards(decks, progress, filter = 'alle') {
+  return decks.flatMap((deck) => quizCards(deck, progress, filter));
+}
+
+// Anzeigename für eine Abfrage über mehrere Stapel: „Unidad 1 + Unidad 2“.
+// Bei Namen wie „Unidad 1 – ¡Hola!“ zählt nur der Teil vor dem Gedankenstrich.
+export function combinedName(decks) {
+  if (decks.length === 1) return decks[0].name;
+  return decks.map((d) => d.name.split(' – ')[0].trim() || d.name).join(' + ');
+}
+
 // Anzahl Karten pro Lernstand.
 export function deckStats(deck, progress) {
   const stats = { total: deck.cards.length, neu: 0, schwach: 0, sitzt: 0 };

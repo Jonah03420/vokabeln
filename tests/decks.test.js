@@ -5,7 +5,7 @@ import { parseCards } from '../src/parser.js';
 import {
   createDeck, renameDeck, deleteDeck, findDeck, splitNew, addCards,
   updateCard, deleteCard, recordResult, importSummary, loadBuiltinDecks, plural,
-  cardStatus, quizCards, deckStats, statsSummary,
+  cardStatus, quizCards, deckStats, statsSummary, combinedCards, combinedName,
 } from '../src/decks.js';
 
 function dataWithDeck(lines = 'el perro ; der Hund\nel gato ; die Katze') {
@@ -258,4 +258,32 @@ test('statsSummary', () => {
   assert.equal(statsSummary({ total: 107, neu: 38, schwach: 5, sitzt: 64 }), '107 Karten · 64 sitzen · 5 schwach · 38 neu');
   assert.equal(statsSummary({ total: 2, neu: 0, schwach: 1, sitzt: 1 }), '2 Karten · 1 sitzt · 1 schwach');
   assert.equal(statsSummary({ total: 1, neu: 0, schwach: 0, sitzt: 1 }), '1 Karte · 1 sitzt');
+});
+
+// --- Mehrere Stapel zusammen ---
+
+test('combinedCards: Karten aller Stapel, jede mit der ID ihres Stapels', () => {
+  const data = emptyData();
+  const a = createDeck(data, 'A').deck;
+  const b = createDeck(data, 'B').deck;
+  addCards(a, parseCards('el perro ; der Hund\nel gato ; die Katze').cards);
+  addCards(b, parseCards('el perro ; der Hund\nla casa ; das Haus').cards);
+  recordResult(data, cardId(b.id, ['el perro']), false);
+
+  const all = combinedCards([a, b], data.progress);
+  assert.equal(all.length, 4);
+  // Gleiche Karte in zwei Stapeln bleibt getrennt, mit eigenem Fortschritt.
+  assert.deepEqual(all.filter((c) => c.es[0] === 'el perro').map((c) => c.id),
+    [cardId(a.id, ['el perro']), cardId(b.id, ['el perro'])]);
+  assert.deepEqual(combinedCards([a, b], data.progress, 'schwach').map((c) => c.id), [cardId(b.id, ['el perro'])]);
+  assert.equal(combinedCards([a, b], data.progress, 'neu').length, 3);
+  assert.deepEqual(combinedCards([], data.progress), []);
+});
+
+test('combinedName', () => {
+  const deck = (name) => ({ name });
+  assert.equal(combinedName([deck('Unidad 1 – ¡Hola! ¿Qué tal?')]), 'Unidad 1 – ¡Hola! ¿Qué tal?');
+  assert.equal(combinedName([deck('Unidad 1 – ¡Hola!'), deck('Unidad 2 – ¿Qué te gusta?')]), 'Unidad 1 + Unidad 2');
+  assert.equal(combinedName([deck('Unidad 1 – ¡Hola!'), deck('Meine Wörter')]), 'Unidad 1 + Meine Wörter');
+  assert.equal(combinedName([deck(' – nur Titel'), deck('B')]), ' – nur Titel + B');
 });

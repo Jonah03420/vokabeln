@@ -7,7 +7,7 @@ import { load, save, exportJSON, exportFileName, importJSON, cardId } from './st
 import {
   createDeck, renameDeck, deleteDeck, splitNew, addCards, updateCard, deleteCard,
   recordResult, importSummary, loadBuiltinDecks, plural, quizCards,
-  deckStats, statsSummary,
+  deckStats, statsSummary, combinedCards, combinedName,
 } from './decks.js';
 import {
   createQuiz, currentCard, answer, isFinished, remaining, firstTryCorrect, groupCards, sides,
@@ -24,6 +24,7 @@ const state = {
   deckId: null,
   pasteDraft: '',
   quiz: null,
+  combo: new Set(), // IDs der Stapel, die zusammen abgefragt werden sollen (nur für diese Sitzung)
 };
 
 // --- Hilfsfunktionen ---
@@ -120,8 +121,54 @@ function homeView() {
     own.length === 0
       ? el('p', { class: 'muted', textContent: 'Noch keine eigenen Stapel.' })
       : el('ul', { class: 'deck-list' }, own.map(deckItem)),
+    comboSection(),
     newDeckForm(),
     backupSection());
+}
+
+// Mehrere Stapel ankreuzen und zusammen abfragen. Erst ab zwei Stapeln mit Karten sinnvoll.
+function comboSection() {
+  const decks = allDecks().filter((d) => d.cards.length > 0);
+  if (decks.length < 2) return null;
+  const buttons = el('div', { class: 'actions' });
+
+  function updateButtons() {
+    const chosen = decks.filter((d) => state.combo.has(d.id));
+    const options = [
+      ['alle', 'Alle lernen', null, 'primary'],
+      ['schwach', 'Schwache üben', 'Schwache Karten'],
+      ['neu', 'Neue üben', 'Neue Karten'],
+    ];
+    fill(buttons, options.map(([filter, text, label, cls]) => {
+      const cards = combinedCards(chosen, state.data.progress, filter);
+      return el('button', {
+        type: 'button',
+        class: cls,
+        textContent: chosen.length < 2 ? text : `${text} (${cards.length})`,
+        disabled: chosen.length < 2 || cards.length === 0,
+        onclick: () => startQuiz(chosen, cards, label),
+      });
+    }));
+  }
+
+  const list = el('div', { class: 'combo-list' }, decks.map((deck) => el('label', {},
+    el('input', {
+      type: 'checkbox',
+      checked: state.combo.has(deck.id),
+      onchange: (event) => {
+        if (event.target.checked) state.combo.add(deck.id);
+        else state.combo.delete(deck.id);
+        updateButtons();
+      },
+    }),
+    el('span', { textContent: deck.name }))));
+  updateButtons();
+
+  return el('section', { class: 'card-box' },
+    el('h3', { textContent: 'Zusammen lernen', style: 'margin-top:0' }),
+    el('p', { class: 'muted', textContent: 'Mindestens zwei Stapel ankreuzen, die Karten werden gemischt abgefragt.' }),
+    list,
+    buttons);
 }
 
 function directionPicker() {
@@ -162,7 +209,7 @@ function deckItem(deck) {
       class: 'primary',
       textContent: 'Lernen',
       disabled: deck.cards.length === 0,
-      onclick: () => startQuiz(deck),
+      onclick: () => startQuiz([deck]),
     }));
 }
 
@@ -267,7 +314,7 @@ function deckView() {
         class: 'primary',
         textContent: 'Alle lernen',
         disabled: deck.cards.length === 0,
-        onclick: () => startQuiz(deck),
+        onclick: () => startQuiz([deck]),
       }),
       practiceButton(deck, 'schwach', 'Schwache üben', 'Schwache Karten'),
       practiceButton(deck, 'neu', 'Neue üben', 'Neue Karten')),
@@ -297,7 +344,7 @@ function practiceButton(deck, status, text, label) {
     type: 'button',
     textContent: `${text} (${cards.length})`,
     disabled: cards.length === 0,
-    onclick: () => startQuiz(deck, cards, label),
+    onclick: () => startQuiz([deck], cards, label),
   });
 }
 
@@ -416,24 +463,27 @@ function cardRow(deck, card, index) {
 
 // --- Abfrage ---
 
-// subset: nur diese Karten abfragen (z. B. die zum Wiederholen), sonst den ganzen Stapel.
-// label: Zusatz zum Stapelnamen in der Abfrage, z. B. „Schwache Karten“.
-function startQuiz(deck, subset = null, label = null) {
-  const cards = subset ?? quizCards(deck, state.data.progress);
+// decks: ein oder mehrere Stapel, die zusammen abgefragt werden.
+// subset: nur diese Karten abfragen (z. B. die zum Wiederholen), sonst alle Karten der Stapel.
+// label: Zusatz zum Namen in der Abfrage, z. B. „Schwache Karten“.
+function startQuiz(decks, subset = null, label = null) {
+  const cards = subset ?? combinedCards(decks, state.data.progress);
+  const name = combinedName(decks);
   state.quiz = {
     run: createQuiz(cards),
-    deckId: deck.id,
-    deckName: label ? `${deck.name} · ${label}` : deck.name,
+    deckIds: decks.map((d) => d.id),
+    deckName: label ? `${name} · ${label}` : name,
     direction: state.data.settings.direction,
     stopped: false,
   };
-  show('quiz', deck.id);
+  show('quiz', decks.length === 1 ? decks[0].id : null);
 }
 
 function stopQuiz() {
   const quiz = state.quiz;
   if (quiz.run.firstGrade.size === 0) {
-    show('deck', quiz.deckId);
+    if (quiz.deckIds.length === 1) show('deck', quiz.deckIds[0]);
+    else show('home', null);
     return;
   }
   quiz.stopped = true;
@@ -535,7 +585,9 @@ function summaryView() {
   const groups = groupCards(quiz.run);
   const answered = quiz.run.firstGrade.size;
   const first = firstTryCorrect(quiz.run);
-  const deck = findAnyDeck(quiz.deckId);
+  // Nur anbieten, wenn alle Stapel noch existieren (eigene könnten inzwischen gelöscht sein).
+  const found = quiz.deckIds.map(findAnyDeck).filter(Boolean);
+  const decks = found.length === quiz.deckIds.length ? found : null;
   const toRepeat = groups.falsch.map((entry) => entry.card);
 
   return el('div', {},
@@ -544,10 +596,14 @@ function summaryView() {
     el('p', { textContent: `${cardCount(first)} beim ersten Versuch richtig${answered > 0 ? ` (${Math.round((first / answered) * 100)} %)` : ''}.` }),
     quiz.stopped ? el('p', { class: 'muted', textContent: `Ausgewertet: ${cardCount(answered)}, die du beantwortet hast.` }) : null,
     el('div', { class: 'actions' },
-      deck && toRepeat.length > 0
-        ? el('button', { type: 'button', class: 'primary', textContent: `Gruppe 1 üben (${toRepeat.length})`, 'data-autofocus': '', onclick: () => startQuiz(deck, toRepeat) })
+      decks && toRepeat.length > 0
+        ? el('button', { type: 'button', class: 'primary', textContent: `Gruppe 1 üben (${toRepeat.length})`, 'data-autofocus': '', onclick: () => startQuiz(decks, toRepeat) })
         : null,
-      deck ? el('button', { type: 'button', textContent: 'Ganzen Stapel nochmal', onclick: () => startQuiz(deck) }) : null,
+      decks ? el('button', {
+        type: 'button',
+        textContent: decks.length === 1 ? 'Ganzen Stapel nochmal' : 'Alle Stapel nochmal',
+        onclick: () => startQuiz(decks),
+      }) : null,
       el('button', { type: 'button', textContent: 'Zur Übersicht', onclick: () => show('home') })),
     GROUP_INFO.map(([key, title, hint]) => groups[key].length === 0 ? null : el('section', { class: `group group-${key}` },
       el('h3', {}, title, el('span', { class: 'group-count', textContent: ` (${groups[key].length})` })),

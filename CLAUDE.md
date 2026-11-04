@@ -99,6 +99,8 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 - Lernstand einer Karte (`cardStatus(progress[id])` in decks.js): „neu“ = nie abgefragt, „schwach“ = `wrong > 0 && wrong >= correct`, sonst „sitzt“. Weil falsche Karten in der Runde wiederholt werden, bis sie richtig sind, bleibt eine einmal falsche Karte (1:1) schwach, bis sie in einer späteren Runde wieder richtig kommt.
 - `quizCards(deck, progress, filter)` liefert Karten mit `id` für die Abfrage, gefiltert nach Lernstand oder `"alle"`.
 - `deckStats(deck, progress)` → `{ total, neu, schwach, sitzt }`, `statsSummary(stats)` → Kurztext („107 Karten · 64 sitzen · 5 schwach · 38 neu“). Übersicht und Stapel-Ansicht zeigen Text plus Balken (grün = sitzt, rot = schwach, grau = neu).
+- Zusammen lernen: Box „Zusammen lernen“ in der Übersicht (ab zwei Stapeln mit Karten), Stapel ankreuzen, dann alle / schwache / neue Karten. Auswahl nur für die Sitzung (`state.combo`), nicht gespeichert. `combinedCards(decks, progress, filter)`, `combinedName(decks)` („Unidad 1 + Unidad 2“, Teil vor „ – “). Jede Karte behält die ID ihres Stapels, Fortschritt landet also beim richtigen Kapitel.
+- `startQuiz(decks, subset, label)` in app.js nimmt immer ein Array von Stapeln; die Abfrage merkt sich `deckIds`.
 - CSS: `[hidden] { display: none !important; }`, weil `button { display: inline-flex }` sonst das hidden-Attribut aushebelt.
 
 ## Veröffentlichen (GitHub Pages)
@@ -114,7 +116,7 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 - Schritt 4 (Features, nacheinander):
   - [x] 1. Schwache / neue Karten üben
   - [x] 2. Fortschritt pro Kapitel in der Übersicht
-  - [ ] 3. Mehrere Kapitel zusammen abfragen
+  - [x] 3. Mehrere Kapitel zusammen abfragen
   - [ ] 4. Gemischte Richtung
   - [ ] 5. Aussprache (Vorlesen der spanischen Seite)
   - [ ] 6. Teilrunde (z. B. 20 zufällige Karten)
