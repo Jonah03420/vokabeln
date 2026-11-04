@@ -1,0 +1,12 @@
+# Lokale Claude-Einstellungen
+.claude/settings.local.json
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node (falls je installiert)
+node_modules/
