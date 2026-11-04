@@ -5,6 +5,7 @@ import { parseCards } from '../src/parser.js';
 import {
   createDeck, renameDeck, deleteDeck, findDeck, splitNew, addCards,
   updateCard, deleteCard, recordResult, importSummary, loadBuiltinDecks, plural,
+  cardStatus, quizCards,
 } from '../src/decks.js';
 
 function dataWithDeck(lines = 'el perro ; der Hund\nel gato ; die Katze') {
@@ -189,4 +190,47 @@ test('ein fehlendes Kapitel verhindert die anderen nicht', async () => {
     '„nochmal“: 1 fehlerhafte Zeile übersprungen (Zeile 2).',
     'decks/k1.txt steht doppelt in der Kapitelliste.',
   ]);
+});
+
+// --- Lernstand ---
+
+test('cardStatus: neu, schwach, sitzt', () => {
+  assert.equal(cardStatus(undefined), 'neu');
+  assert.equal(cardStatus({ correct: 0, wrong: 0 }), 'neu');
+  assert.equal(cardStatus({ correct: 0, wrong: 1 }), 'schwach');
+  // In einer Runde wird eine falsche Karte wiederholt, bis sie richtig ist: 1:1 bleibt schwach.
+  assert.equal(cardStatus({ correct: 1, wrong: 1 }), 'schwach');
+  assert.equal(cardStatus({ correct: 3, wrong: 5 }), 'schwach');
+  assert.equal(cardStatus({ correct: 2, wrong: 1 }), 'sitzt');
+  assert.equal(cardStatus({ correct: 1, wrong: 0 }), 'sitzt');
+});
+
+test('quizCards: alle Karten mit ID, ohne den Stapel zu verändern', () => {
+  const { data, deck } = dataWithDeck();
+  const cards = quizCards(deck, data.progress);
+  assert.equal(cards.length, 2);
+  assert.equal(cards[0].id, cardId(deck.id, ['el perro']));
+  assert.deepEqual(cards[0].es, ['el perro']);
+  assert.equal('id' in deck.cards[0], false);
+});
+
+test('quizCards: nach Lernstand filtern', () => {
+  const { data, deck } = dataWithDeck('el perro ; der Hund\nel gato ; die Katze\nel pez ; der Fisch');
+  recordResult(data, cardId(deck.id, ['el perro']), false);
+  recordResult(data, cardId(deck.id, ['el perro']), true);
+  recordResult(data, cardId(deck.id, ['el gato']), true);
+  const es = (filter) => quizCards(deck, data.progress, filter).map((c) => c.es[0]);
+  assert.deepEqual(es('schwach'), ['el perro']);
+  assert.deepEqual(es('sitzt'), ['el gato']);
+  assert.deepEqual(es('neu'), ['el pez']);
+  assert.deepEqual(es('alle'), ['el perro', 'el gato', 'el pez']);
+});
+
+test('quizCards: leerer Stapel und Fortschritt anderer Stapel', () => {
+  const data = emptyData();
+  const { deck } = createDeck(data, 'Leer');
+  assert.deepEqual(quizCards(deck, data.progress, 'schwach'), []);
+  const other = dataWithDeck();
+  recordResult(other.data, cardId('anderer', ['el perro']), false);
+  assert.equal(quizCards(other.deck, other.data.progress, 'schwach').length, 0);
 });

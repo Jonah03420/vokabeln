@@ -95,10 +95,27 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 - Neues Kapitel: Datei in decks/ ablegen und in decks/index.json eintragen.
 - Auswertung am Ende einer Abfrage (nur für diese Sitzung, nicht gespeichert): Der erste Versuch pro Karte bestimmt die Gruppe. Gruppe 1 „Wiederholen“ = falsch (sortiert nach Anzahl Fehlversuche), Gruppe 2 „Okay“ = fast richtig oder „Ich lag doch richtig“, Gruppe 3 „Perfekt“ = exakt richtig. `answer(quiz, grade)` mit grade `"perfekt" | "okay" | "falsch"`, `groupCards(quiz)` liefert die Gruppen. „Beenden“ mitten in der Abfrage zeigt die Auswertung der bisher beantworteten Karten; „Gruppe 1 üben“ startet eine Abfrage nur mit diesen Karten.
 
+## Festgelegte Details (Schritt 4: Features)
+- Lernstand einer Karte (`cardStatus(progress[id])` in decks.js): „neu“ = nie abgefragt, „schwach“ = `wrong > 0 && wrong >= correct`, sonst „sitzt“. Weil falsche Karten in der Runde wiederholt werden, bis sie richtig sind, bleibt eine einmal falsche Karte (1:1) schwach, bis sie in einer späteren Runde wieder richtig kommt.
+- `quizCards(deck, progress, filter)` liefert Karten mit `id` für die Abfrage, gefiltert nach Lernstand oder `"alle"`.
+- CSS: `[hidden] { display: none !important; }`, weil `button { display: inline-flex }` sonst das hidden-Attribut aushebelt.
+
 ## Veröffentlichen (GitHub Pages)
-Repository anlegen, alle Dateien pushen, unter Settings → Pages „Deploy from a branch“, Branch `main`, Ordner `/ (root)`. Alle Pfade sind relativ, die App läuft also auch unter `https://<name>.github.io/<repo>/`.
+- Live: https://jonah03420.github.io/vokabeln/ (Repo github.com/Jonah03420/vokabeln, öffentlich, Pages aus `main` / root).
+- Ablauf pro Feature: bauen → `node --test` grün → lokal im Browser prüfen → nach Freigabe committen und pushen, ca. 1 Minute später online.
+- Nutzer haben echte Daten im localStorage: Änderungen am Speicherschema nur mit Migration.
 
 ## Stand
 - [x] Schritt 1: CLAUDE.md, src/parser.js, src/check.js, Tests
 - [x] Schritt 2: src/storage.js, Tests
 - [x] Schritt 3: Oberfläche, decks.js, quiz.js, mitgelieferte Kapitel, PWA
+- [x] Online auf GitHub Pages
+- Schritt 4 (Features, nacheinander):
+  - [x] 1. Schwache / neue Karten üben
+  - [ ] 2. Fortschritt pro Kapitel in der Übersicht
+  - [ ] 3. Mehrere Kapitel zusammen abfragen
+  - [ ] 4. Gemischte Richtung
+  - [ ] 5. Aussprache (Vorlesen der spanischen Seite)
+  - [ ] 6. Teilrunde (z. B. 20 zufällige Karten)
+  - [ ] 7. Suche in den Karten eines Stapels
+- Bewusst später/nie: Sync zwischen Geräten (Backend), Spaced Repetition. Weitere Kapitel trägt der Nutzer selbst ein.

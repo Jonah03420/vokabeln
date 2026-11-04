@@ -110,6 +110,21 @@ export function recordResult(data, id, correct) {
   data.progress[id] = entry;
 }
 
+// Lernstand einer Karte aus ihrem Fortschritt:
+// "neu" = noch nie abgefragt, "schwach" = mindestens so oft falsch wie richtig, sonst "sitzt".
+export function cardStatus(entry) {
+  if (!entry || entry.correct + entry.wrong === 0) return 'neu';
+  return entry.wrong > 0 && entry.wrong >= entry.correct ? 'schwach' : 'sitzt';
+}
+
+// Karten eines Stapels für die Abfrage, jeweils mit ihrer Fortschritts-ID.
+// filter: "alle" oder ein Lernstand ("neu", "schwach", "sitzt").
+export function quizCards(deck, progress, filter = 'alle') {
+  return deck.cards
+    .map((card) => ({ ...card, id: cardId(deck.id, card.es) }))
+    .filter((card) => filter === 'alle' || cardStatus(progress[card.id]) === filter);
+}
+
 // Vorschau-Text, z. B. „23 Karten erkannt, 1 Fehler in Zeile 7“.
 export function importSummary({ cards, errors, duplicates }, existingCount = 0) {
   const parts = [`${plural(cards.length, 'Karte', 'Karten')} erkannt`];

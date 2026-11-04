@@ -6,7 +6,7 @@ import { checkAnswer } from './check.js';
 import { load, save, exportJSON, exportFileName, importJSON, cardId } from './storage.js';
 import {
   createDeck, renameDeck, deleteDeck, splitNew, addCards, updateCard, deleteCard,
-  recordResult, importSummary, loadBuiltinDecks, plural,
+  recordResult, importSummary, loadBuiltinDecks, plural, quizCards,
 } from './decks.js';
 import {
   createQuiz, currentCard, answer, isFinished, remaining, firstTryCorrect, groupCards, sides,
@@ -252,10 +252,15 @@ function deckView() {
       el('button', {
         type: 'button',
         class: 'primary',
-        textContent: 'Lernen',
+        textContent: 'Alle lernen',
         disabled: deck.cards.length === 0,
         onclick: () => startQuiz(deck),
-      })),
+      }),
+      practiceButton(deck, 'schwach', 'Schwache üben', 'Schwache Karten'),
+      practiceButton(deck, 'neu', 'Neue üben', 'Neue Karten')),
+    deck.cards.length > 0
+      ? el('p', { class: 'muted small', textContent: 'Schwach = mindestens so oft falsch wie richtig beantwortet. Neu = noch nie abgefragt.' })
+      : null,
     deck.builtin
       ? el('p', { class: 'muted', textContent: `Kapitel aus dem Buch, schreibgeschützt. Änderungen bitte in der Datei decks/${deck.file} vornehmen.` })
       : [pasteSection(deck), renameSection(deck)],
@@ -270,6 +275,17 @@ function deckView() {
         notify('Stapel gelöscht.', 'ok');
         show('home', null);
       })));
+}
+
+// Abfrage nur mit Karten eines Lernstands; ausgegraut, wenn es keine gibt.
+function practiceButton(deck, status, text, label) {
+  const cards = quizCards(deck, state.data.progress, status);
+  return el('button', {
+    type: 'button',
+    textContent: `${text} (${cards.length})`,
+    disabled: cards.length === 0,
+    onclick: () => startQuiz(deck, cards, label),
+  });
 }
 
 function pasteSection(deck) {
@@ -388,12 +404,13 @@ function cardRow(deck, card, index) {
 // --- Abfrage ---
 
 // subset: nur diese Karten abfragen (z. B. die zum Wiederholen), sonst den ganzen Stapel.
-function startQuiz(deck, subset = null) {
-  const cards = subset ?? deck.cards.map((card) => ({ ...card, id: cardId(deck.id, card.es) }));
+// label: Zusatz zum Stapelnamen in der Abfrage, z. B. „Schwache Karten“.
+function startQuiz(deck, subset = null, label = null) {
+  const cards = subset ?? quizCards(deck, state.data.progress);
   state.quiz = {
     run: createQuiz(cards),
     deckId: deck.id,
-    deckName: deck.name,
+    deckName: label ? `${deck.name} · ${label}` : deck.name,
     direction: state.data.settings.direction,
     stopped: false,
   };
