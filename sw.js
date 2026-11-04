@@ -1,7 +1,7 @@
 // Service Worker: Netzwerk zuerst, bei fehlender Verbindung aus dem Cache.
 // So sind Änderungen online sofort sichtbar, und offline läuft die App mit dem letzten Stand.
 
-const CACHE = 'vokabeln-v1';
+const CACHE = 'vokabeln-v2';
 const SHELL = [
   './',
   'index.html',
@@ -21,7 +21,8 @@ const SHELL = [
 
 async function precache() {
   const cache = await caches.open(CACHE);
-  await cache.addAll(SHELL);
+  // cache: 'reload' umgeht den HTTP-Cache des Browsers, sonst landen evtl. alte Dateien im Offline-Cache.
+  await cache.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' })));
   try {
     const list = await (await fetch('decks/index.json')).json();
     await cache.addAll(list.map((entry) => `decks/${entry.file}`));
@@ -48,7 +49,9 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith((async () => {
     try {
-      const response = await fetch(request);
+      // no-cache: beim Server nachfragen statt den HTTP-Cache zu nehmen (GitHub Pages erlaubt 10 Minuten).
+      // Sonst könnten nach einem Update neue und alte Module gemischt geladen werden.
+      const response = await fetch(request, { cache: 'no-cache' });
       if (response.ok) {
         const cache = await caches.open(CACHE);
         await cache.put(request, response.clone());

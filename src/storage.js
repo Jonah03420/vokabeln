@@ -7,7 +7,7 @@ export const SCHEMA_VERSION = 1;
 export const STORAGE_KEY = 'vokabeln';
 export const BACKUP_KEY = 'vokabeln-kaputt';
 
-const DIRECTIONS = ['de-es', 'es-de'];
+const DIRECTIONS = ['de-es', 'es-de', 'mixed'];
 
 // Schrittweise Migrationen: MIGRATIONS[n] macht aus Version n die Version n + 1.
 const MIGRATIONS = {};
@@ -117,7 +117,7 @@ function checkSettings(settings, errors) {
   }
   const direction = settings.direction ?? defaults.direction;
   if (!DIRECTIONS.includes(direction)) {
-    errors.push(`settings.direction: muss "de-es" oder "es-de" sein`);
+    errors.push(`settings.direction: muss "de-es", "es-de" oder "mixed" sein`);
   }
   return { direction };
 }

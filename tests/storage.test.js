@@ -139,6 +139,14 @@ test('unbekannte Abfragerichtung', () => {
   assert.match(errorsOf(data), /settings\.direction/);
 });
 
+test('gemischte Abfragerichtung ist gültig', () => {
+  const data = sampleData();
+  data.settings.direction = 'mixed';
+  const result = validate(data);
+  assert.equal(result.ok, true);
+  assert.equal(result.data.settings.direction, 'mixed');
+});
+
 test('fehlende note, progress und settings werden ergänzt', () => {
   const result = validate({
     version: 1,

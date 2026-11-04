@@ -17,6 +17,12 @@ export function sides(card, direction) {
     : { prompt: card.de, answers: card.es, answerLang: 'es' };
 }
 
+// "mixed": für jede Karte zufällig eine der beiden Richtungen, sonst die gewählte.
+export function resolveDirection(direction, random = Math.random) {
+  if (direction !== 'mixed') return direction;
+  return random() < 0.5 ? 'de-es' : 'es-de';
+}
+
 // Bewertung einer Antwort: "perfekt" (exakt richtig), "okay" (fast richtig oder
 // „Ich lag doch richtig“) oder "falsch". Für die Gruppen zählt der erste Versuch.
 export const GRADES = ['perfekt', 'okay', 'falsch'];

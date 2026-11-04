@@ -10,7 +10,7 @@ import {
   deckStats, statsSummary, combinedCards, combinedName,
 } from './decks.js';
 import {
-  createQuiz, currentCard, answer, isFinished, remaining, firstTryCorrect, groupCards, sides,
+  createQuiz, currentCard, answer, isFinished, remaining, firstTryCorrect, groupCards, sides, resolveDirection,
 } from './quiz.js';
 
 const main = document.getElementById('app');
@@ -172,7 +172,7 @@ function comboSection() {
 }
 
 function directionPicker() {
-  const options = [['de-es', 'Deutsch → Spanisch'], ['es-de', 'Spanisch → Deutsch']];
+  const options = [['de-es', 'Deutsch → Spanisch'], ['es-de', 'Spanisch → Deutsch'], ['mixed', 'Gemischt']];
   return el('fieldset', { class: 'direction' },
     el('legend', { textContent: 'Abfragerichtung' }),
     options.map(([value, label]) => el('label', {},
@@ -497,7 +497,9 @@ function quizView() {
   if (quiz.stopped || isFinished(quiz.run)) return summaryView();
 
   const card = currentCard(quiz.run);
-  const { prompt, answers, answerLang } = sides(card, quiz.direction);
+  // Bei „Gemischt“ wird die Richtung pro angezeigter Karte einmal ausgelost.
+  quiz.shownDirection ??= resolveDirection(quiz.direction);
+  const { prompt, answers, answerLang } = sides(card, quiz.shownDirection);
   const target = answerLang === 'es' ? 'Spanisch' : 'Deutsch';
   let checked = false;
   let grade = 'falsch';
@@ -551,6 +553,7 @@ function quizView() {
 
   function next() {
     answer(quiz.run, grade);
+    quiz.shownDirection = null;
     recordResult(state.data, card.id, grade !== 'falsch');
     persist();
     render();

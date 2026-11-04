@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  shuffle, sides, createQuiz, currentCard, answer, isFinished,
+  shuffle, sides, resolveDirection, createQuiz, currentCard, answer, isFinished,
   remaining, firstTryCorrect, groupCards,
 } from '../src/quiz.js';
 
@@ -49,6 +49,17 @@ test('shuffle mischt tatsächlich', () => {
 test('sides je nach Richtung', () => {
   assert.deepEqual(sides(cards[0], 'de-es'), { prompt: ['eins'], answers: ['uno'], answerLang: 'es' });
   assert.deepEqual(sides(cards[0], 'es-de'), { prompt: ['uno'], answers: ['eins'], answerLang: 'de' });
+});
+
+test('resolveDirection: feste Richtung bleibt, gemischt wählt zufällig', () => {
+  assert.equal(resolveDirection('de-es', () => 0.9), 'de-es');
+  assert.equal(resolveDirection('es-de', () => 0.1), 'es-de');
+  assert.equal(resolveDirection('mixed', () => 0.1), 'de-es');
+  assert.equal(resolveDirection('mixed', () => 0.5), 'es-de');
+  assert.equal(resolveDirection('mixed', () => 0.99), 'es-de');
+  const random = seeded(7);
+  const seen = new Set(Array.from({ length: 50 }, () => resolveDirection('mixed', random)));
+  assert.deepEqual([...seen].sort(), ['de-es', 'es-de']);
 });
 
 test('alles richtig: Runde endet nach jeder Karte genau einmal', () => {

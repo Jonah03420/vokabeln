@@ -78,7 +78,7 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 
 ## Festgelegte Details (aus Schritt 2)
 - Ein localStorage-Schlüssel `vokabeln`, Schema-Version 1:
-  `{ version, decks: [{ id, name, cards }], progress: { [cardId]: { correct, wrong } }, settings: { direction: "de-es" | "es-de" } }`
+  `{ version, decks: [{ id, name, cards }], progress: { [cardId]: { correct, wrong } }, settings: { direction: "de-es" | "es-de" | "mixed" } }`
 - `decks` enthält nur eigene Stapel. Mitgelieferte Stapel kommen aus decks/, nur ihr Fortschritt liegt im Speicher.
 - `cardId(deckId, es)` = `${deckId}:${cardKey(es)}`. Mitgelieferte Stapel: `datei:<dateiname>`, eigene: `eigen-<uuid>`.
 - Der Speicher wird an `load`/`save` übergeben (Standard: localStorage), Tests nutzen einen Fake-Speicher.
@@ -101,6 +101,8 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 - `deckStats(deck, progress)` → `{ total, neu, schwach, sitzt }`, `statsSummary(stats)` → Kurztext („107 Karten · 64 sitzen · 5 schwach · 38 neu“). Übersicht und Stapel-Ansicht zeigen Text plus Balken (grün = sitzt, rot = schwach, grau = neu).
 - Zusammen lernen: Box „Zusammen lernen“ in der Übersicht (ab zwei Stapeln mit Karten), Stapel ankreuzen, dann alle / schwache / neue Karten. Auswahl nur für die Sitzung (`state.combo`), nicht gespeichert. `combinedCards(decks, progress, filter)`, `combinedName(decks)` („Unidad 1 + Unidad 2“, Teil vor „ – “). Jede Karte behält die ID ihres Stapels, Fortschritt landet also beim richtigen Kapitel.
 - `startQuiz(decks, subset, label)` in app.js nimmt immer ein Array von Stapeln; die Abfrage merkt sich `deckIds`.
+- Abfragerichtung `settings.direction` kann auch `"mixed"` sein (weiter Schema-Version 1, nur ein zusätzlicher erlaubter Wert). `resolveDirection(direction, random)` in quiz.js lost bei „mixed“ pro angezeigter Karte aus; app.js merkt sich das Ergebnis in `quiz.shownDirection` bis zum Weitergehen.
+- Service Worker holt mit `cache: 'no-cache'` (Netzwerk) bzw. `cache: 'reload'` (Precache), damit nach einem Update nie alte und neue Module gemischt geladen werden (GitHub Pages erlaubt 10 Minuten HTTP-Cache).
 - CSS: `[hidden] { display: none !important; }`, weil `button { display: inline-flex }` sonst das hidden-Attribut aushebelt.
 
 ## Veröffentlichen (GitHub Pages)
@@ -117,7 +119,7 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
   - [x] 1. Schwache / neue Karten üben
   - [x] 2. Fortschritt pro Kapitel in der Übersicht
   - [x] 3. Mehrere Kapitel zusammen abfragen
-  - [ ] 4. Gemischte Richtung
+  - [x] 4. Gemischte Richtung
   - [ ] 5. Aussprache (Vorlesen der spanischen Seite)
   - [ ] 6. Teilrunde (z. B. 20 zufällige Karten)
   - [ ] 7. Suche in den Karten eines Stapels
