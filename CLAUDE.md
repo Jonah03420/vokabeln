@@ -98,6 +98,7 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 ## Festgelegte Details (Schritt 4: Features)
 - Lernstand einer Karte (`cardStatus(progress[id])` in decks.js): „neu“ = nie abgefragt, „schwach“ = `wrong > 0 && wrong >= correct`, sonst „sitzt“. Weil falsche Karten in der Runde wiederholt werden, bis sie richtig sind, bleibt eine einmal falsche Karte (1:1) schwach, bis sie in einer späteren Runde wieder richtig kommt.
 - `quizCards(deck, progress, filter)` liefert Karten mit `id` für die Abfrage, gefiltert nach Lernstand oder `"alle"`.
+- `deckStats(deck, progress)` → `{ total, neu, schwach, sitzt }`, `statsSummary(stats)` → Kurztext („107 Karten · 64 sitzen · 5 schwach · 38 neu“). Übersicht und Stapel-Ansicht zeigen Text plus Balken (grün = sitzt, rot = schwach, grau = neu).
 - CSS: `[hidden] { display: none !important; }`, weil `button { display: inline-flex }` sonst das hidden-Attribut aushebelt.
 
 ## Veröffentlichen (GitHub Pages)
@@ -112,7 +113,7 @@ Einfache, schnelle Karteikarten-App. Ich lerne mit einem Schulbuch, das in Kapit
 - [x] Online auf GitHub Pages
 - Schritt 4 (Features, nacheinander):
   - [x] 1. Schwache / neue Karten üben
-  - [ ] 2. Fortschritt pro Kapitel in der Übersicht
+  - [x] 2. Fortschritt pro Kapitel in der Übersicht
   - [ ] 3. Mehrere Kapitel zusammen abfragen
   - [ ] 4. Gemischte Richtung
   - [ ] 5. Aussprache (Vorlesen der spanischen Seite)

@@ -7,6 +7,7 @@ import { load, save, exportJSON, exportFileName, importJSON, cardId } from './st
 import {
   createDeck, renameDeck, deleteDeck, splitNew, addCards, updateCard, deleteCard,
   recordResult, importSummary, loadBuiltinDecks, plural, quizCards,
+  deckStats, statsSummary,
 } from './decks.js';
 import {
   createQuiz, currentCard, answer, isFinished, remaining, firstTryCorrect, groupCards, sides,
@@ -141,11 +142,21 @@ function directionPicker() {
       label)));
 }
 
+// Balken: grün = sitzt, rot = schwach, Rest = neu.
+function progressBar(stats) {
+  const pct = (n) => `${stats.total === 0 ? 0 : (n / stats.total) * 100}%`;
+  return el('span', { class: 'progress', ariaHidden: 'true' },
+    el('span', { class: 'progress-sitzt', style: `width:${pct(stats.sitzt)}` }),
+    el('span', { class: 'progress-schwach', style: `width:${pct(stats.schwach)}` }));
+}
+
 function deckItem(deck) {
+  const stats = deckStats(deck, state.data.progress);
   return el('li', {},
     el('button', { type: 'button', class: 'deck-open', onclick: () => show('deck', deck.id) },
       el('span', { class: 'deck-name', textContent: deck.name }),
-      el('span', { class: 'muted', textContent: cardCount(deck.cards.length) })),
+      el('span', { class: 'muted', textContent: statsSummary(stats) }),
+      stats.total > 0 ? progressBar(stats) : null),
     el('button', {
       type: 'button',
       class: 'primary',
@@ -244,10 +255,12 @@ function deckView() {
     state.view = 'home';
     return homeView();
   }
+  const stats = deckStats(deck, state.data.progress);
   return el('div', {},
     el('button', { type: 'button', class: 'link', textContent: '← Übersicht', onclick: () => show('home') }),
     el('h2', { textContent: deck.name }),
-    el('p', { class: 'muted', textContent: cardCount(deck.cards.length) }),
+    el('p', { class: 'muted', textContent: statsSummary(stats) }),
+    stats.total > 0 ? progressBar(stats) : null,
     el('div', { class: 'actions' },
       el('button', {
         type: 'button',

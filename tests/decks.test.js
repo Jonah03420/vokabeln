@@ -5,7 +5,7 @@ import { parseCards } from '../src/parser.js';
 import {
   createDeck, renameDeck, deleteDeck, findDeck, splitNew, addCards,
   updateCard, deleteCard, recordResult, importSummary, loadBuiltinDecks, plural,
-  cardStatus, quizCards,
+  cardStatus, quizCards, deckStats, statsSummary,
 } from '../src/decks.js';
 
 function dataWithDeck(lines = 'el perro ; der Hund\nel gato ; die Katze') {
@@ -233,4 +233,29 @@ test('quizCards: leerer Stapel und Fortschritt anderer Stapel', () => {
   const other = dataWithDeck();
   recordResult(other.data, cardId('anderer', ['el perro']), false);
   assert.equal(quizCards(other.deck, other.data.progress, 'schwach').length, 0);
+});
+
+// --- Fortschritt pro Stapel ---
+
+test('deckStats zählt Karten pro Lernstand', () => {
+  const { data, deck } = dataWithDeck('el perro ; der Hund\nel gato ; die Katze\nel pez ; der Fisch\nel pájaro ; der Vogel');
+  recordResult(data, cardId(deck.id, ['el perro']), false);
+  recordResult(data, cardId(deck.id, ['el gato']), true);
+  recordResult(data, cardId(deck.id, ['el pez']), true);
+  assert.deepEqual(deckStats(deck, data.progress), { total: 4, neu: 1, schwach: 1, sitzt: 2 });
+});
+
+test('deckStats: leerer Stapel und Fortschritt ohne passende Karte', () => {
+  const data = emptyData();
+  const { deck } = createDeck(data, 'Leer');
+  data.progress['anderer:el perro'] = { correct: 3, wrong: 0 };
+  assert.deepEqual(deckStats(deck, data.progress), { total: 0, neu: 0, schwach: 0, sitzt: 0 });
+});
+
+test('statsSummary', () => {
+  assert.equal(statsSummary({ total: 0, neu: 0, schwach: 0, sitzt: 0 }), '0 Karten');
+  assert.equal(statsSummary({ total: 107, neu: 107, schwach: 0, sitzt: 0 }), '107 Karten · noch nicht geübt');
+  assert.equal(statsSummary({ total: 107, neu: 38, schwach: 5, sitzt: 64 }), '107 Karten · 64 sitzen · 5 schwach · 38 neu');
+  assert.equal(statsSummary({ total: 2, neu: 0, schwach: 1, sitzt: 1 }), '2 Karten · 1 sitzt · 1 schwach');
+  assert.equal(statsSummary({ total: 1, neu: 0, schwach: 0, sitzt: 1 }), '1 Karte · 1 sitzt');
 });

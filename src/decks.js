@@ -125,6 +125,24 @@ export function quizCards(deck, progress, filter = 'alle') {
     .filter((card) => filter === 'alle' || cardStatus(progress[card.id]) === filter);
 }
 
+// Anzahl Karten pro Lernstand.
+export function deckStats(deck, progress) {
+  const stats = { total: deck.cards.length, neu: 0, schwach: 0, sitzt: 0 };
+  for (const card of deck.cards) stats[cardStatus(progress[cardId(deck.id, card.es)])] += 1;
+  return stats;
+}
+
+// Kurztext für die Übersicht, z. B. „107 Karten · 64 sitzen · 5 schwach · 38 neu“.
+export function statsSummary({ total, neu, schwach, sitzt }) {
+  const head = plural(total, 'Karte', 'Karten');
+  if (total === 0 || neu === total) return total === 0 ? head : `${head} · noch nicht geübt`;
+  const parts = [head];
+  if (sitzt > 0) parts.push(`${sitzt} ${sitzt === 1 ? 'sitzt' : 'sitzen'}`);
+  if (schwach > 0) parts.push(`${schwach} schwach`);
+  if (neu > 0) parts.push(`${neu} neu`);
+  return parts.join(' · ');
+}
+
 // Vorschau-Text, z. B. „23 Karten erkannt, 1 Fehler in Zeile 7“.
 export function importSummary({ cards, errors, duplicates }, existingCount = 0) {
   const parts = [`${plural(cards.length, 'Karte', 'Karten')} erkannt`];
